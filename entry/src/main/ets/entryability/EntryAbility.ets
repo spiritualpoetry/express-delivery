@@ -1,6 +1,8 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { AdvertClass, defaultAd, TOKEN_KEY, UserSettingClass } from '@hm/basic'
+
 
 const DOMAIN = 0x0000;
 
@@ -18,17 +20,34 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
   }
 
-  onWindowStageCreate(windowStage: window.WindowStage): void {
+  async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
+
+    //检查是否有广告
+    const setting = new UserSettingClass(this.context)
     // Main window is created, set main page for this ability
+    //通过模拟请求拿到模拟信息
+    const ad = await new Promise<AdvertClass>((resolve,reject)=>{
+      setTimeout(()=>{
+        resolve(defaultAd)
+      },500)
+    })
+    await setting.setUserAd(ad)
+    if (ad.showAd) {
+      const win = await windowStage.createSubWindow("ad_window")
+      await win.showWindow()
+      win.setUIContent("pages/Start/start")
+    }
+
+    const token = await setting.getUserToken()
+    if (token) {
+      AppStorage.setOrCreate(TOKEN_KEY, token)
+      windowStage.loadContent('pages/Index')
+    }else {
+      windowStage.loadContent('pages/Login/Login')
+    }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    windowStage.loadContent('pages/Index', (err) => {
-      if (err.code) {
-        hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
-        return;
-      }
-      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
-    });
+
   }
 
   onWindowStageDestroy(): void {
@@ -46,3 +65,4 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
   }
 }
+
