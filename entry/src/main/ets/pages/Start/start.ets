@@ -2,10 +2,10 @@ import { AdvertClass, UserSettingClass } from '@hm/basic'
 import { window } from '@kit.ArkUI'
 
 @Entry
-@ComponentV2
+@Component
 struct Start {
   userSetting:UserSettingClass=new UserSettingClass(getContext(this))
-  @Local
+  @State
   adObj:AdvertClass=new AdvertClass()
 
   timer:number=-1
