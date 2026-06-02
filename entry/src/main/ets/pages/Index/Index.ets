@@ -1,4 +1,6 @@
 import  {TabClass} from  '@hm/basic'
+import My from './My/My'
+
 @Entry
 @Component
 
@@ -42,13 +44,12 @@ struct Index {
       ForEach(this.tabsData, (item: TabClass) => {
           TabContent() {
             if (item.name==="task") {
-              Text("任务组件")
+              TestCom({titile:'任务'})
             }else if (item.name==="message") {
-              Text("消息组件")
+              TestCom({titile:'消息'})
             }else {
-              Text("我的组件")
+              My()
             }
-
           }
           .tabBar(
             //自定义tabBar
@@ -60,5 +61,16 @@ struct Index {
     .height('100%')
     .width('100%')
     }
+}
 
+
+@Component
+struct TestCom{
+  titile:string=''
+  aboutToAppear(): void {
+    AlertDialog.show({message:this.titile})
+  }
+  build() {
+    Text(this.titile)
+  }
 }
