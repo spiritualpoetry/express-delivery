@@ -1,6 +1,6 @@
 import {HmCard,HmCardItem}from '@hm/basic'
 import {getUserInfo} from '../../../api'
-import { UserInfo, UserInfoModel } from '../../../models/User'
+import { UserInfo, UserInfoModel } from '../../../models/index'
 import json from '@ohos.util.json'
 import { JSON } from '@kit.ArkTS'
 
