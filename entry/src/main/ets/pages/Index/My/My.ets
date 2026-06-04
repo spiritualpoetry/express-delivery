@@ -1,32 +1,55 @@
 import {HmCard,HmCardItem}from '@hm/basic'
-import {getUserInfo} from '../../../api'
-import { UserInfo, UserInfoModel } from '../../../models/index'
+import {getUserInfo,getUserTaskInfo} from '../../../api'
+import { UserInfo, UserInfoModel,UserTaskInfoModel,UserTaskInfo, UserTaskInfoParams,
+  UserTaskInfoParamsModel } from '../../../models/index'
 import json from '@ohos.util.json'
 import { JSON } from '@kit.ArkTS'
+import { promptAction } from '@kit.ArkUI'
 
 @Preview
 @Component
 struct My {
   @State
   userInfo:UserInfoModel=new UserInfoModel({} as UserInfo)
+  //用户任务数据
+  @State
+  userTaskInfo:UserTaskInfoModel=new UserTaskInfoModel({} as UserTaskInfo)
+  //声明请求参数
+  queryTaskParams:UserTaskInfoParamsModel= new UserTaskInfoParamsModel({
+    //必填
+    year:new Date().getFullYear().toString(),
+    month:(new Date().getMonth()+1).toString().padStart(2,"0")
+  })
 
-
-  // aboutToAppear(): void {
-  //   this.getUserInfo()
-  // }
 
 
   //获取用户信息方法
   @Consume
-  @Watch("getUserInfo")
+  @Watch("updataName")
   currentName: string
 
-  async getUserInfo(){
+
+  //只执行一次
+  aboutToAppear(): void {
+    this.getUserInfo()
+  }
+
+
+  //更新页签，通过页签的name得知
+  updataName(){
     if(this.currentName === 'my') {
-      this.userInfo = await getUserInfo()
+      this.getUserTaskInfo()
     }
   }
 
+  async getUserInfo(){
+      this.userInfo = await getUserInfo()
+  }
+
+  //获取用户的任务数据
+  async getUserTaskInfo(){
+    this.userTaskInfo=await getUserTaskInfo(this.queryTaskParams)
+  }
 
   build() {
     Column(){
@@ -63,18 +86,18 @@ struct My {
           Row(){
             //任务总量
             Column(){
-              Text('1000').fontSize(18).fontColor($r('app.color.text_primary')).lineHeight(25).margin({ bottom: 17 })
+              Text(this.userTaskInfo.taskAmounts?.toString()).fontSize(18).fontColor($r('app.color.text_primary')).lineHeight(25).margin({ bottom: 17 })
               Text('任务总量').fontSize(12).fontColor($r('app.color.text_primary')).lineHeight(17)
             }.justifyContent(FlexAlign.SpaceAround).layoutWeight(1)
             //完成任务量
             Column(){
-              Text('1000').fontSize(18).fontColor($r('app.color.text_primary')).lineHeight(25).margin({ bottom: 17 })
+              Text(this.userTaskInfo.completedAmounts?.toString()).fontSize(18).fontColor($r('app.color.text_primary')).lineHeight(25).margin({ bottom: 17 })
               Text('完成任务量').fontSize(12).fontColor($r('app.color.text_primary')).lineHeight(17)
             }.justifyContent(FlexAlign.SpaceAround).layoutWeight(1)
 
             //运输历程（km）
             Column(){
-              Text('1000').fontSize(18).fontColor($r('app.color.text_primary')).lineHeight(25).margin({ bottom: 17 })
+              Text(this.userTaskInfo.transportMileage?.toString()).fontSize(18).fontColor($r('app.color.text_primary')).lineHeight(25).margin({ bottom: 17 })
               Text('运输历程（km）').fontSize(12).fontColor($r('app.color.text_primary')).lineHeight(17)
             }.justifyContent(FlexAlign.SpaceAround).layoutWeight(1)
           }.margin({bottom:15})
