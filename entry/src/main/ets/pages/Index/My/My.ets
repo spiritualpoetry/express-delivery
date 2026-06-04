@@ -1,25 +1,50 @@
 import {HmCard,HmCardItem}from '@hm/basic'
+import {getUserInfo} from '../../../api'
+import { UserInfo, UserInfoModel } from '../../../models/User'
+import json from '@ohos.util.json'
+import { JSON } from '@kit.ArkTS'
+
 @Preview
 @Component
 struct My {
+  @State
+  userInfo:UserInfoModel=new UserInfoModel({} as UserInfo)
+
+
+  // aboutToAppear(): void {
+  //   this.getUserInfo()
+  // }
+
+
+  //获取用户信息方法
+  @Consume
+  @Watch("getUserInfo")
+  currentName: string
+
+  async getUserInfo(){
+    if(this.currentName === 'my') {
+      this.userInfo = await getUserInfo()
+    }
+  }
+
+
   build() {
     Column(){
         Column(){
-          Image($r("app.media.ic_avatar_driver"))
+          Image(this.userInfo.avatar||$r("app.media.ic_avatar_driver"))
             .width(60)
             .height(60)
             .margin({top:70})
             .borderRadius(34.5)
             .backgroundColor(Color.White)
-
-          Text('司机')
+          Text(`${this.userInfo.name}`)
             .margin({top:10})
             .fontColor($r('app.color.white'))
-          Text('司机编号:6666666')
+          Text(`司机编号:${this.userInfo.number}`)
             .fontSize(12)
             .margin(10)
             .fontColor($r('app.color.white'))
-          Text('手机号:666666')
+          Text(`手机号:${this.userInfo.phone}`)
             .fontSize(12)
             .fontColor($r('app.color.white'))
             .margin({bottom:30})

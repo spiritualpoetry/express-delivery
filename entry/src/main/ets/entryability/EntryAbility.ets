@@ -39,8 +39,8 @@ export default class EntryAbility extends UIAbility {
     }
 
     const token = await setting.getUserToken()
+    AppStorage.setOrCreate(TOKEN_KEY, token)
     if (token) {
-      AppStorage.setOrCreate(TOKEN_KEY, token)
       windowStage.loadContent('pages/Index/Index')
     }else {
       windowStage.loadContent('pages/Login/Login')

@@ -1,5 +1,5 @@
 import { Request } from '@hm/basic'
-import { LoginForm, LoginFormModel } from '../models'
+import { LoginForm, LoginFormModel,UserInfoModel} from '../models'
 
 export const login = (data: LoginFormModel) => {
   const plainData: LoginForm = {
@@ -7,4 +7,11 @@ export const login = (data: LoginFormModel) => {
     password: data.password
   }
   return Request.post<string>("/login/account", plainData)
+}
+
+
+
+// 获取用户信息
+export const getUserInfo = () => {
+  return Request.get<UserInfoModel>("/users")
 }

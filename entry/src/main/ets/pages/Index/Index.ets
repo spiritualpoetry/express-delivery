@@ -5,8 +5,18 @@ import My from './My/My'
 @Component
 
 struct Index {
+
+
   @State
+  @Watch("updateName")
   currentIndex: number = 0 //当前激活项
+  @Provide //在父组件通过Provide传入一个当前name
+  currentName: string = ""
+  updateName () {
+    this.currentName = this.tabsData[this.currentIndex].name
+  }
+
+
   @State tabsData: TabClass[] = [{
     title: '任务',
     name: 'task',
