@@ -39,7 +39,7 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
       Authorization: AppStorage.get(TOKEN_KEY) || "",
     },
     method,
-    readTimeout: 20000
+    readTimeout: 23000
   }
 // //封装请求工具 get / put /post /patch /delete
 // async function  requestHttp<T>(url:string="",method:http.RequestMethod=http.RequestMethod.GET,data?:object):Promise<T>{
