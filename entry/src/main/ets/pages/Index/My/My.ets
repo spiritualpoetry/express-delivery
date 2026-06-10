@@ -3,8 +3,8 @@ import {getUserInfo,getUserTaskInfo} from '../../../api'
 import { UserInfo, UserInfoModel,UserTaskInfoModel,UserTaskInfo, UserTaskInfoParams,
   UserTaskInfoParamsModel } from '../../../models/index'
 import json from '@ohos.util.json'
-import { JSON } from '@kit.ArkTS'
-import { promptAction } from '@kit.ArkUI'
+import { JSON, url } from '@kit.ArkTS'
+import { promptAction, router } from '@kit.ArkUI'
 
 @Preview
 @Component
@@ -123,11 +123,11 @@ struct My {
           leftTitle:"任务数据",
           rightText:"",
         })
-        HmCardItem({
-          leftTitle:"系统设置",
-          rightText:"",
-          showBottomBorder:false
-        })
+        HmCardItem({ leftTitle: '系统设置', rightText: '', onRightClick: () => {
+          router.pushUrl({
+            url: 'pages/Setting/Setting'
+          })
+        }})
       }
     }.width('100%').height('100%').backgroundColor($r('app.color.background_page')).borderRadius(8)
 

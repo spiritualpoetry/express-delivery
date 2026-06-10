@@ -23,6 +23,9 @@ struct HmCardItem {
             .height(24)
         }
       }
+      .onClick(()=>{
+        this.onRightClick()
+      })
     }
     .justifyContent(FlexAlign.SpaceBetween)
     .border({
