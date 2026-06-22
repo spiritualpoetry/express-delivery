@@ -5,6 +5,7 @@ import { UserInfo, UserInfoModel,UserTaskInfoModel,UserTaskInfo, UserTaskInfoPar
 import json from '@ohos.util.json'
 import { JSON, url } from '@kit.ArkTS'
 import { promptAction, router } from '@kit.ArkUI'
+import HmSkeleton from '@hm/basic/src/main/ets/components/HmSkeleton'
 
 @Preview
 @Component
@@ -53,6 +54,9 @@ struct My {
 
   build() {
     Column(){
+      if (!this.userInfo.number){
+        HmSkeleton()
+      }else {
         Column(){
           Image(this.userInfo.avatar||$r("app.media.ic_avatar_driver"))
             .width(60)
@@ -112,23 +116,25 @@ struct My {
         .width('90%')
 
 
-      //车辆信息，任务数据，系统设置
-      //尾随闭包形式
-      HmCard(){
+        //车辆信息，任务数据，系统设置
+        //尾随闭包形式
+        HmCard(){
           HmCardItem({
             leftTitle:"车辆信息",
             rightText:"",
           })
-        HmCardItem({
-          leftTitle:"任务数据",
-          rightText:"",
-        })
-        HmCardItem({ leftTitle: '系统设置', rightText: '', onRightClick: () => {
-          router.pushUrl({
-            url: 'pages/Setting/Setting'
+          HmCardItem({
+            leftTitle:"任务数据",
+            rightText:"",
           })
-        }})
+          HmCardItem({ leftTitle: '系统设置', rightText: '', onRightClick: () => {
+            router.pushUrl({
+              url: 'pages/Setting/Setting'
+            })
+          }})
+        }
       }
+
     }.width('100%').height('100%').backgroundColor($r('app.color.background_page')).borderRadius(8)
 
 

@@ -1,5 +1,6 @@
 import  {TabClass} from  '@hm/basic'
 import My from './My/My'
+import TaskTabs from './Task/TaskTab'
 
 @Entry
 @Component
@@ -54,7 +55,7 @@ struct Index {
       ForEach(this.tabsData, (item: TabClass) => {
           TabContent() {
             if (item.name==="task") {
-              TestCom({titile:'任务'})
+              TaskTabs()
             }else if (item.name==="message") {
               TestCom({titile:'消息'})
             }else {
