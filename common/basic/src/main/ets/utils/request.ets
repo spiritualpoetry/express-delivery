@@ -75,22 +75,11 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
      try {
        const result = await httpRequest.request(urlStr,config)
 
-       // ===== 添加响应日志 =====
-       console.log('=== 响应详情 ===')
-       console.log('HTTP状态码:', result.responseCode)
-       console.log('响应头:', JSON.stringify(result.header))
-       console.log('响应内容:', result.result)
-       console.log('响应内容类型:', typeof result.result)
-       // =======================
-
-
        //处理一些异常
        //判断状态码 1,http状态码 2,业务状态码
        if (result.responseCode===401) {
          //401表示token失效 超市 或者没传
          //移动端产品一般去做无感刷新=>token 失效用 refresh_token换取新token然后重新发请求
-
-
          //直接提示错误-删除目前token 跳到登录页
          promptAction.showToast({message:"登陆失效"})
          //删除token- 删两个地址 首选项，全局状态
@@ -110,17 +99,10 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
          //业务状态码，只有业务状态码是200的时候才成功
          const res =JSON.parse(result.result as string) as  ResponseData<T>
 
-         // ===== 添加业务响应日志 =====
-         console.log('=== 业务响应 ===')
-         console.log('业务状态码:', res.code)
-         console.log('业务消息:', res.msg)
-         console.log('业务数据:', JSON.stringify(res.data))
-         // ===========================
-
-
          if(res.code===200){
            return res.data as T
          }else {
+           console.log(res.msg)
            promptAction.showToast({
              message: res.msg || '服务器异常'
            })
@@ -129,12 +111,6 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
        }
      }catch (error){
 
-       // ===== 添加错误日志 =====
-       console.error('=== 请求异常 ===')
-       console.error('错误类型:', error.name)
-       console.error('错误消息:', error.message)
-       console.error('错误堆栈:', error.stack)
-       // =======================
 
 
 
