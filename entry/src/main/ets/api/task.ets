@@ -1,8 +1,9 @@
-import {Request} from "@hm/basic"
-import { TaskListDataModel, TaskListParamsModel } from "../models/Task"
+import { TaskListData, TaskListParams, UserInfo } from '../models'
+import { Request } from '@hm/basic'
 
+// 获取任务列表
 
-//获取用户任务列表
-export const  getTaskList=(params:TaskListParamsModel)=>{
-  return Request.get<TaskListDataModel>("/tasks/list",params)
+export const getTaskList = (params: TaskListParams) => {
+  return Request.get<TaskListData>("/tasks/list", params)
 }
+

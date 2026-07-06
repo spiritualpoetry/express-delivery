@@ -1,4 +1,5 @@
 import { TabClass } from "@hm/basic"
+import TaskItemCard from "./TaskItemCard"
 import TaskList from "./TaskList"
 
 @Preview
@@ -60,6 +61,7 @@ struct TaskTabs{
           .tabBar(item.title)
         })
       }
+      .backgroundColor($r("app.color.background_page"))
       Row({space:30}){
         ForEach(this.tabsData,(item:TabClass)=>{
           this.getTabBar(item)
@@ -72,6 +74,7 @@ struct TaskTabs{
       .height(50)
       .backgroundColor($r("app.color.white"))
     }
+    .margin({top:7})
   }
 }
 export default TaskTabs

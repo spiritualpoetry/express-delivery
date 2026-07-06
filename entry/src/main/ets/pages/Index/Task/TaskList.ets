@@ -31,17 +31,20 @@
 // }
 // export default TaskList
 
+import { HmList } from '@hm/basic'
 import { getTaskList } from '../../../api/task'
-import { TaskInfoItem, TaskListParams, TaskListParamsModel, TaskTypeEnum } from '../../../models'
+import { TaskInfoItem, TaskInfoItemModel, TaskListParams, TaskListParamsModel, TaskTypeEnum } from '../../../models'
+import TaskItemCard from './TaskItemCard'
 
 @Preview
 @Component
 struct TaskList {
   @State
-  querrParams:TaskListParamsModel = new TaskListParamsModel({
+  queryParams: TaskListParams = new TaskListParamsModel({
     status: TaskTypeEnum.Waiting,
     page: 1,
     pageSize: 5,
+
   } as TaskListParams)
   @State
   taskListData: TaskInfoItem[] = []
@@ -49,11 +52,18 @@ struct TaskList {
     this.getTaskList()
   }
   async getTaskList() {
-    const result = await getTaskList(this.querrParams)
+    const result = await getTaskList(this.queryParams)
     this.taskListData = result.items
   }
   build() {
-    Text(JSON.stringify(this.taskListData))
+    HmList()
+    // List(){
+    //   ForEach(this.taskListData,(item: TaskInfoItemModel)=>{
+    //     ListItem(){
+    //       TaskItemCard({taskItemData:item})
+    //     }
+    //   })
+    // }
   }
 }
 export default  TaskList
