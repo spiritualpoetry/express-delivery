@@ -48,7 +48,6 @@ struct Start {
         .margin({ right: 20, top: 20 })
         .textAlign(TextAlign.Center)
         .onClick(() => {                    // ✅ 正确绑定点击事件
-          console.log('跳过按钮点击');
           this.closeWin()
         });
     }.height('100%')

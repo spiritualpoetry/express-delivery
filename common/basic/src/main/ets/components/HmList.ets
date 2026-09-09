@@ -8,6 +8,7 @@ struct HmList {
   dataSource:object[]=[]  //数据源
 
   // 上拉加载的方法
+  @Prop
   onLoad: () => void = () => {} // 由调用者传入
 
   // 下拉刷新方法
@@ -26,6 +27,8 @@ struct HmList {
 
   @BuilderParam
   renderItem:(item:object)=>void //由调用者传入 由HmList调用 传入每一个项的数据
+  @State
+  refreshStatus: RefreshStatus=RefreshStatus.Inactive//记录下拉刷新的状态：未激活态
   @Builder
   getBottomDisplay () {
     // 获取底部的展示内容
@@ -50,8 +53,36 @@ struct HmList {
     .justifyContent(FlexAlign.Center)
   }
 
+  getStatusText(){
+    //根据状态获取文本
+    switch (this.refreshStatus){
+      case RefreshStatus.Drag:
+        return "继续下拉"
+      case RefreshStatus.OverDrag:
+        return "松手加载"
+      case RefreshStatus.Refresh:
+        return "加载中"
+      default :
+        return""
+    }
+  }
+  @Builder
+  getRefeshDisplay(){
+    Row(){
+     LoadingProgress()
+       .width(40)
+       .aspectRatio(1)
+       .color($r("app.color.primary"))
+      Text(this.getStatusText())
+        .fontSize(14)
+        .fontColor($r("app.color.text_secondary"))
+    }.justifyContent(FlexAlign.Center)
+    .height(50)
+    .width("100%")
+  }
+
   build() {
-    Refresh({refreshing:$$this.refreshIng}){
+    Refresh({refreshing:$$this.refreshIng,builder:this.getRefeshDisplay()}){
       List(){
         ForEach(this.dataSource,(item:object)=>{
           //每一项的结构的UI内容不是由列表决定，而由使用者决定
@@ -77,9 +108,16 @@ struct HmList {
         }
       })
     }
-    .onStateChange(()=>{
-      //实现下拉加载
-
+    .onStateChange(async (state) => {
+      this.refreshStatus=state//记录状态
+      // 实现下拉刷新
+      if (state === RefreshStatus.Refresh) {
+        // 松手加载
+        await this.onRefresh() // 调用刷新方法
+        this.refreshIng = false // 关闭下拉的动画效果
+        this.loading = false // 关闭上拉刷新的loading
+        // 下拉刷新意味着所有数据全都不要 重新来过
+      }
     })
 
 
