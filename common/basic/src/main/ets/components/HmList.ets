@@ -8,7 +8,6 @@ struct HmList {
   dataSource:object[]=[]  //数据源
 
   // 上拉加载的方法
-  @Prop
   onLoad: () => void = () => {} // 由调用者传入
 
   // 下拉刷新方法
@@ -90,7 +89,6 @@ struct HmList {
           if (this.renderItem) {
             this.renderItem(item)
           }
-
         })
         ListItem(){
           this.getBottomDisplay()
