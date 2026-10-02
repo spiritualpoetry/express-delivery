@@ -67,6 +67,7 @@ struct TaskList {
       loadingText: '拼命加载中',
       finishText: '没啦没啦'
     })
+      .height("100%")
   }
 }
 

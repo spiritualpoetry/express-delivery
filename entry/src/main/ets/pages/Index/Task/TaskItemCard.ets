@@ -1,4 +1,4 @@
-import { TaskInfoItem, TaskInfoItemModel } from "../../../models"
+import { TaskInfoItem, TaskInfoItemModel, TaskTypeEnum } from "../../../models"
 import { router, Router } from "@kit.ArkUI"
 
 @Preview
@@ -6,8 +6,19 @@ import { router, Router } from "@kit.ArkUI"
 struct TaskItemCard {
   taskItemData: TaskInfoItemModel = new TaskInfoItemModel({} as TaskInfoItem)
 
+  //提货按钮是否可用
   getBtnEnable(){
-    return this.taskItemData.enablePickUp
+    if (this.taskItemData.enablePickUp) {
+      return true
+    }
+    switch (this.taskItemData.status.toString()){
+      case TaskTypeEnum.Line.toString():
+        return true
+      case TaskTypeEnum.Delivered.toString():
+        return true
+      default:
+        return false
+    }
   }
   //声明一个去提货方法
   toPickUp(){
@@ -17,6 +28,21 @@ struct TaskItemCard {
         id:this.taskItemData.id
       }
     })
+  }
+
+  //封装获取按钮显示的文本
+  getBtnText(){
+    //status虽然类型是string，但实际值是number
+    switch (this.taskItemData.status.toString()){
+      case TaskTypeEnum.Waiting.toString():
+        return "提货"
+      case TaskTypeEnum.Line.toString():
+        return "交货"
+      case TaskTypeEnum.Delivered.toString():
+        return "回车登记"
+      default:
+        return ""
+    }
   }
 
   build() {
@@ -73,7 +99,7 @@ struct TaskItemCard {
           // Text("2022.01.20").fontSize(14).fontColor($r('app.color.text_secondary')).margin({ top: 4 })
         }.alignItems(HorizontalAlign.Start)
 
-        Button("提货", { type: ButtonType.Capsule })
+        Button(this.getBtnText(), { type: ButtonType.Capsule })
           .backgroundColor($r('app.color.primary'))
           .fontColor($r("app.color.white"))
           .fontSize(14)

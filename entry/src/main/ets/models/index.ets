@@ -1,3 +1,5 @@
 export * from './User'
 export * from './User_Task'
 export * from './Task'
+export * from './pick_up'
+export * from './deliver'
