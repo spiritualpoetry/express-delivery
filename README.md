@@ -25,7 +25,6 @@
 | `master` | 已确认版本的代码基线，默认分支 |
 | `develop` | 日常开发和集成 |
 | `feature/<功能名>` | 从 `develop` 创建的独立功能分支，例如 `feature/delivery-validation` |
-| `t't'y` | 保留的旧开发分支，用于查阅历史 |
 
 日常修改在 `develop` 或功能分支完成。提交时使用能说明变化的标题，例如 `fix: close loading dialog after upload failure`。完成功能验证后，再把 `develop` 合并到 `master`。
 
@@ -43,4 +42,4 @@ git push
 git switch develop
 ```
 
-历史提交和旧分支在此次整理中保留。发布新版本时，可在完成业务验证后添加版本标签。
+旧开发分支 `t't'y` 的全部提交已合入 `master` 和 `develop`，该分支已删除，提交历史仍然保留。发布新版本时，可在完成业务验证后添加版本标签。
