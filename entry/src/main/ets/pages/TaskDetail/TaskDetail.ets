@@ -132,13 +132,15 @@ struct TaskDetail {
       imgList:this.taskDetailData.cargoPickUpPictureList || [],
       onListChange:(list:ImageList[])=>{
         this.taskDetailData.cargoPickUpPictureList=list
-      }
+      },
+      canUpload:this.taskDetailData.status===TaskTypeEnum.Waiting
     })
     HmUpload({title:"请拍照上传回单照片",
       imgList:this.taskDetailData.cargoPictureList || [],
       onListChange:(list:ImageList[])=>{
         this.taskDetailData.cargoPictureList=list
-      }
+      },
+      canUpload:this.taskDetailData.status===TaskTypeEnum.Waiting
     })
   }
   //交货信息
@@ -149,13 +151,15 @@ struct TaskDetail {
       imgList:this.taskDetailData.certificatePictureList || [],
       onListChange:(list:ImageList[])=>{
         this.taskDetailData.certificatePictureList=list
-      }
+      },
+      canUpload:this.taskDetailData.status===TaskTypeEnum.Line
     })
     HmUpload({title:"请拍照上传交货回单照片",
       imgList:this.taskDetailData.deliverPictureList || [],
       onListChange:(list:ImageList[])=>{
         this.taskDetailData.deliverPictureList=list
-      }
+      },
+      canUpload:this.taskDetailData.status===TaskTypeEnum.Line
     })
   }
 
@@ -313,13 +317,15 @@ struct TaskDetail {
               this.getTransLineContent()
             }
 
-            if (this.taskDetailData.status===TaskTypeEnum.Waiting) {
+            if (this.taskDetailData.status===TaskTypeEnum.Waiting
+              || this.taskDetailData.status===TaskTypeEnum.Delivered) {
               HmToggleCard({title:"提货信息"}){
                 //放置上传组件 基础组件
                 this.getPickUpContent()
               }
             }
-            if (this.taskDetailData.status===TaskTypeEnum.Line) {
+            if (this.taskDetailData.status===TaskTypeEnum.Line
+              || this.taskDetailData.status===TaskTypeEnum.Delivered) {
               HmToggleCard({title:"交货信息"}){
                 //放置上传组件 基础组件
                 this.getDeliverContent()

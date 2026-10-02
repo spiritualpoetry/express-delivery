@@ -8,8 +8,12 @@ import { uploadImage } from "../api/upload"
 
 //上传的组件，并不完成上传的业务 选择图片 用来交互
 @Component
-@Entry
+@Preview
 struct HmUpload {
+  //是否可操控可上传删除
+  @Prop
+  canUpload:boolean=true
+
   title:string="请拍照上传回单凭证"//标题
   maxNumber:number=6//最大选择数量
   @Prop
@@ -63,18 +67,20 @@ struct HmUpload {
                 .width(100)
                 .height(100)
                 .borderRadius(4)
-              Image($r("app.media.ic_btn_delete"))
-                .width(30)
-                .height(30)
-                .onClick(()=>{
-                  this.imgList.splice(index,1)//删除一个
-                  this.onListChange(this.imgList)//通知父组件
-                })
+              if (this.canUpload) {
+                Image($r("app.media.ic_btn_delete"))
+                  .width(30)
+                  .height(30)
+                  .onClick(()=>{
+                    this.imgList.splice(index,1)//删除一个
+                    this.onListChange(this.imgList)//通知父组件
+                  })
+              }
             }
           }
         })
         //显示上传按钮，在没达到最大上传图片数量时可以显示按钮
-        if (this.imgList.length < this.maxNumber) {
+        if (this.imgList.length < this.maxNumber && this.canUpload) {
           GridItem() {
             Row(){
               Image($r("app.media.ic_add_img"))
