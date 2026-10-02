@@ -1,3 +1,7 @@
+@Builder
+function defaultListItem(item: object) {
+}
+
 @Component
 struct HmList {
   @State
@@ -25,7 +29,7 @@ struct HmList {
   finishText: string = "没有数据啦" // 所有数据加载完成的文本
 
   @BuilderParam
-  renderItem:(item:object)=>void //由调用者传入 由HmList调用 传入每一个项的数据
+  renderItem:(item:object)=>void = defaultListItem //由调用者传入 由HmList调用 传入每一个项的数据
   @State
   refreshStatus: RefreshStatus=RefreshStatus.Inactive//记录下拉刷新的状态：未激活态
   @Builder

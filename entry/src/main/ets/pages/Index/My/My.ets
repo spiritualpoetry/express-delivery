@@ -9,6 +9,16 @@ import HmSkeleton from '@hm/basic/src/main/ets/components/HmSkeleton'
 
 @Preview
 @Component
+struct MyPreview {
+  @Provide
+  currentName: string = ''
+
+  build() {
+    My()
+  }
+}
+
+@Component
 struct My {
   @State
   userInfo:UserInfoModel=new UserInfoModel({} as UserInfo)

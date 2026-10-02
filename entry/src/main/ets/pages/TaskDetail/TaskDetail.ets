@@ -163,6 +163,7 @@ struct TaskDetail {
     })
   }
 
+  //详情数据
   @State
   taskDetailData:TaskDetailInfoModel=new TaskDetailInfoModel({}as TaskDetailInfo)
 
@@ -230,6 +231,15 @@ struct TaskDetail {
           .fontSize(16)
           .height(50)
           .width(125)
+          .onClick(()=>{
+            router.pushUrl({
+              url:"pages/Delay/Delay",
+              params:{
+                id:this.taskDetailData.id,
+                oldTime:this.taskDetailData.planDepartureTime//计划时间
+              }
+            })
+          })
         Button("提货", { type: ButtonType.Capsule })
           .enabled(this.getPickUpState())
           .backgroundColor($r('app.color.primary_disabled'))
@@ -265,6 +275,14 @@ struct TaskDetail {
             .fontColor($r('app.color.white'))
             .height(50)
             .width('80%')
+            .onClick(()=>{
+              router.pushUrl({
+                url:"/pages/CarRecord/CarRecord",
+                params:{
+                  id:this.taskDetailData.id
+                }
+              })
+            })
         }.width('100%').justifyContent(FlexAlign.Center)
       }
     }
