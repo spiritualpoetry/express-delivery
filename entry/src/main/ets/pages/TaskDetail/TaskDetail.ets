@@ -9,6 +9,7 @@ import { PickUpParamsModel, TaskTypeEnum ,DeliverParamsTypeModel} from '../../mo
 @Entry
 @Component
 struct TaskDetail {
+  @State submitting: boolean = false
   loading:CustomDialogController = new CustomDialogController({
     builder:HmLoading({title:"数据处理中..."}),
     customStyle:true
@@ -133,14 +134,14 @@ struct TaskDetail {
       onListChange:(list:ImageList[])=>{
         this.taskDetailData.cargoPickUpPictureList=list
       },
-      canUpload:this.taskDetailData.status===TaskTypeEnum.Waiting
+      canUpload:!this.submitting && this.taskDetailData.status===TaskTypeEnum.Waiting
     })
     HmUpload({title:"请拍照上传回单照片",
       imgList:this.taskDetailData.cargoPictureList || [],
       onListChange:(list:ImageList[])=>{
         this.taskDetailData.cargoPictureList=list
       },
-      canUpload:this.taskDetailData.status===TaskTypeEnum.Waiting
+      canUpload:!this.submitting && this.taskDetailData.status===TaskTypeEnum.Waiting
     })
   }
   //交货信息
@@ -152,14 +153,14 @@ struct TaskDetail {
       onListChange:(list:ImageList[])=>{
         this.taskDetailData.certificatePictureList=list
       },
-      canUpload:this.taskDetailData.status===TaskTypeEnum.Line
+      canUpload:!this.submitting && this.taskDetailData.status===TaskTypeEnum.Line
     })
     HmUpload({title:"请拍照上传交货回单照片",
       imgList:this.taskDetailData.deliverPictureList || [],
       onListChange:(list:ImageList[])=>{
         this.taskDetailData.deliverPictureList=list
       },
-      canUpload:this.taskDetailData.status===TaskTypeEnum.Line
+      canUpload:!this.submitting && this.taskDetailData.status===TaskTypeEnum.Line
     })
   }
 
@@ -175,10 +176,17 @@ struct TaskDetail {
   }
 
   async getTaskDetail(id:string){
-    this.taskDetailData=await GTD(id)
+    try {
+      this.taskDetailData=await GTD(id)
+    } catch (error) {
+      // 请求层提示失败，保留当前页面数据。
+    }
   }
   //封装一个去提货的方法
   async btnPickUp(){
+    if (!this.getPickUpState() || this.taskDetailData.status !== TaskTypeEnum.Waiting) { return }
+    this.submitting = true
+    try {
     this.loading.open()
     const  cargoPickUpPictureList=  await UploadFile(this.taskDetailData.cargoPickUpPictureList)//传入提货凭证
     const cargoPictureList= await  UploadFile(this.taskDetailData.cargoPictureList)//
@@ -189,17 +197,29 @@ struct TaskDetail {
         cargoPickUpPictureList,
         cargoPictureList
       }))
+    // 提交成功后先更新本地状态，避免刷新失败时再次提交同一操作。
+    this.taskDetailData.status = TaskTypeEnum.Line
+    this.taskDetailData.cargoPickUpPictureList = cargoPickUpPictureList
+    this.taskDetailData.cargoPictureList = cargoPictureList
     //重新获取数据
 
-    this.getTaskDetail(this.taskDetailData.id)//重新拉取数据
+    await this.getTaskDetail(this.taskDetailData.id)//重新拉取数据
     //滚动到顶部
     this.scroller.scrollEdge(Edge.Top)
-    this.loading.close()
     promptAction.showToast({message:'提货成功'})
+    } catch (error) {
+      promptAction.showToast({message:'提货失败，请检查网络或图片后重试'})
+    } finally {
+      this.loading.close()
+      this.submitting = false
+    }
   }
 
   //封装一个去交货的方法
   async btnDeliver(){
+    if (!this.getDeliverState() || this.taskDetailData.status !== TaskTypeEnum.Line) { return }
+    this.submitting = true
+    try {
     this.loading.open()
     const  certificatePictureList=  await UploadFile(this.taskDetailData.certificatePictureList)
     const deliverPictureList= await  UploadFile(this.taskDetailData.deliverPictureList)
@@ -210,13 +230,21 @@ struct TaskDetail {
         certificatePictureList,
         deliverPictureList
       }))
+    this.taskDetailData.status = TaskTypeEnum.Delivered
+    this.taskDetailData.certificatePictureList = certificatePictureList
+    this.taskDetailData.deliverPictureList = deliverPictureList
     //重新获取数据
 
-    this.getTaskDetail(this.taskDetailData.id)//重新拉取数据
+    await this.getTaskDetail(this.taskDetailData.id)//重新拉取数据
     //滚动到顶部
     this.scroller.scrollEdge(Edge.Top)
-    this.loading.close()
     promptAction.showToast({message:'交货成功'})
+    } catch (error) {
+      promptAction.showToast({message:'交货失败，请检查网络或图片后重试'})
+    } finally {
+      this.loading.close()
+      this.submitting = false
+    }
   }
 
   // 底部按钮结构
@@ -304,6 +332,7 @@ struct TaskDetail {
 
   //控制提货按钮的可用性
   getPickUpState(){
+    if (this.submitting || !this.taskDetailData.id) { return false }
    //凭证和货品有图片  可用
     if (this.taskDetailData.cargoPickUpPictureList?.length
       && this.taskDetailData.cargoPickUpPictureList?.every(item=>!!item.url)
@@ -316,6 +345,7 @@ struct TaskDetail {
 
   //控制交货按钮的可用性
   getDeliverState(){
+    if (this.submitting || !this.taskDetailData.id) { return false }
     //凭证和货品有图片  可用
     if (this.taskDetailData.deliverPictureList?.length
       && this.taskDetailData.deliverPictureList?.every(item=>!!item.url)
