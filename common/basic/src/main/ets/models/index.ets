@@ -4,7 +4,7 @@ export * from './router'
 export * from './common'
 
 export class  ResponseData<T>{
-  code:number=0
+  code:number | string=0
   msg:string=''
   data:null|T=null
 }

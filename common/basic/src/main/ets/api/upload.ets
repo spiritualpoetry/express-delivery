@@ -21,6 +21,7 @@ export const uploadImage = async (context: Context, files: request.File[]) => {
   return new Promise<ImageList[]>(async (resolve, reject) => {
     try {
       let arr: ImageList[] = []
+      let failureMessage: string = ''
       const task = await request.uploadFile(context, config) // 成功执行并不意味着 上传成功 只是任务创建成功
       task.on("fail", () => {
         // 上传失败
@@ -32,19 +33,27 @@ export const uploadImage = async (context: Context, files: request.File[]) => {
       // 每上传成功一次就会进来
       task.on("headerReceive", (headers: object) => {
         if (headers["body"]) {
+          try {
           const result = JSON.parse(headers["body"]) as ResponseData<string>
-          if (result.code === 200) {
+          if (String(result.code) === '200' && result.data) {
             arr.push({
               url: result.data as string
             })
+          } else {
+            failureMessage = result.msg || '图片上传失败'
           }
+          } catch (error) { failureMessage = '图片上传响应异常' }
         }
       })
       task.on("complete", () => {
         // 上传完成
         // 也不能拿到上传成功的地址
         // 走到这里认为 要返回的结构已经ok了
-        resolve(arr)
+        if (!failureMessage && arr.length === files.length) {
+          resolve(arr)
+        } else {
+          reject(new Error(failureMessage || '图片上传不完整，请重试'))
+        }
       })
       // 4.0 上传完成之后 用文件的一个标识 又去后台查了一下  当时是最优方案
     }catch(error) {

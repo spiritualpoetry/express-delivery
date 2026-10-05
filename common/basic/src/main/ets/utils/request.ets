@@ -15,7 +15,6 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
   console.log('BASE_URL:', BASE_URL)
   console.log('完整URL:', urlStr)
   console.log('请求方法:', http.RequestMethod[method])
-  console.log('请求数据:', JSON.stringify(data))
   console.log('请求数据类型:', typeof data)
   // ====================
 
@@ -29,7 +28,6 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
 
   // 添加日志：查看实际发送的数据
   console.log('请求URL:', urlStr)
-  console.log('发送数据:', JSON.stringify(data))
 
   const config: http.HttpRequestOptions = {
     // 关键修复
@@ -99,7 +97,7 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
          //业务状态码，只有业务状态码是200的时候才成功
          const res =JSON.parse(result.result as string) as  ResponseData<T>
 
-         if(res.code===200){
+         if(String(res.code)==='200'){
            return res.data as T
          }else {
            console.log(res.msg)
@@ -116,6 +114,8 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
 
        promptAction.showToast({message:error.message})
        return Promise.reject(error)
+     } finally {
+       httpRequest.destroy()
      }
 
    }

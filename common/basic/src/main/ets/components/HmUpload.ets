@@ -20,6 +20,7 @@ struct HmUpload {
   imgList:ImageList[]=[]
 
   index:number=-1
+  private selecting: boolean = false
   //当列表发生变化通知父组件
   onListChange:(list:ImageList[])=>void=()=>{}
 
@@ -31,17 +32,26 @@ struct HmUpload {
     customStyle:true,
   })
   async selectImg(){
+    const remaining = this.maxNumber - this.imgList.length
+    if (this.selecting || !this.canUpload || remaining <= 0) { return }
+    this.selecting = true
+    try {
     const photo=new picker.PhotoViewPicker()
     const result = await photo.select({
       MIMEType:picker.PhotoViewMIMETypes.IMAGE_TYPE,
-      maxSelectNumber:this.maxNumber
+      maxSelectNumber:remaining
     })
-    if (result.photoUris.length) {
+    if (this.canUpload && result.photoUris.length) {
       //追加操作
       this.imgList=this.imgList.concat(result.photoUris.map(url=>({
         url
       } as ImageList)))
       this.onListChange(this.imgList)//传出imgList通过onListChange给父组件
+    }
+    } catch (error) {
+      AlertDialog.show({ message: '选择图片失败，请重试' })
+    } finally {
+      this.selecting = false
     }
   }
 
@@ -114,12 +124,20 @@ struct HmUpload {
   //因为上传文件  只能从沙箱文件中拷贝，所以我们需要把传过来的所有图片拷贝到沙箱
   let saveDir=getContext().cacheDir//存储的目录
   const fileParams:request.File[]=[]//要提交的参数
+  const tempPaths: string[] = []
+  try {
   list.forEach(item=>{
     const  file = fileIo.openSync( item.url ,fileIo.OpenMode.READ_ONLY )//读取相册的文件
     //将文件拷贝到沙箱目录
     //相册的地址
     const uniqueName = util.generateRandomUUID()+".jpg"
-    fileIo.copyFileSync(file.fd,saveDir+"/"+uniqueName) //将相册文件拷贝到沙箱
+    const tempPath = saveDir+"/"+uniqueName
+    tempPaths.push(tempPath)
+    try {
+      fileIo.copyFileSync(file.fd,tempPath) //将相册文件拷贝到沙箱
+    } finally {
+      fileIo.closeSync(file.fd)
+    }
     //需要生成参数
     fileParams.push({
       filename:uniqueName,//文件名称
@@ -127,7 +145,6 @@ struct HmUpload {
       type:'jpg',//文件的后缀
       uri:`internal://cache/${uniqueName}`//
     })
-    fileIo.closeSync(file.fd)
   })
 
     //将参数上传
@@ -135,6 +152,13 @@ struct HmUpload {
     return result //将上传结果返回上一层
     //第二种写法
     //return await uploadImage(getContext(),fileParams)
+  } finally {
+    tempPaths.forEach((path: string) => {
+      try { fileIo.unlinkSync(path) } catch (error) {
+        // 不让临时文件清理错误覆盖原始上传结果。
+      }
+    })
+  }
 }
 
 export {UploadFile}

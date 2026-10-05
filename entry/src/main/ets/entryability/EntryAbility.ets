@@ -3,7 +3,6 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { AdvertClass, defaultAd, TOKEN_KEY, UserSettingClass } from '@hm/basic'
 
-
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {

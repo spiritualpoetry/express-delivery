@@ -1,10 +1,10 @@
 {
   "app": {
-    "bundleName": "com.example.fast_driver",
+    "bundleName": "com.example.fast_driver_test",
     "vendor": "example",
     "versionCode": 1000000,
     "versionName": "1.0.0",
-    "icon": "$media:layered_image",
+    "icon": "$media:icon",
     "label": "$string:app_name"
   }
 }

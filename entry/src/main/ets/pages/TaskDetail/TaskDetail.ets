@@ -252,6 +252,14 @@ struct TaskDetail {
           })
       }else if (this.taskDetailData.status===TaskTypeEnum.Line) {
         Button("上报异常", { type: ButtonType.Capsule })
+          .onClick(()=>{
+            router.pushUrl({
+              url:"pages/ExceptionReport/ExceptionReport",
+              params:{
+                id:this.taskDetailData.transportTaskId
+              }
+            })
+          })
           .backgroundColor($r('app.color.btn_gray'))
           .fontColor($r('app.color.text_primary'))
           .fontSize(16)

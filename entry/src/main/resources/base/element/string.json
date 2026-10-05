@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "小时达"
+    },
+    {
+      "name": "LOCATION_REASON",
+      "value": "用于地理定位"
     }
   ]
 }

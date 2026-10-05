@@ -1,6 +1,7 @@
 import { DelayParamsTypeModel,DeliverParamsTypeModel, PickUpParamsModel, TaskListData, TaskListParams, UserInfo,CarRecordTypeModel } from '../models'
 import { Request } from '@hm/basic'
 import { TaskDetailInfoModel } from '../models/task_detail'
+import { ExceptionParamsType } from '../models/exception'
 
 // 获取任务列表
 export const getTaskList = (params: TaskListParams) => {
@@ -31,4 +32,8 @@ export const carRecord = (params:CarRecordTypeModel) => {
 //延迟提货
 export const delay = (params:DelayParamsTypeModel) => {
   return Request.put<null>("/tasks/delay",params)
+}
+
+export const reportException = (params: ExceptionParamsType) => {
+  return Request.post<null>("/tasks/reportException", params)
 }
