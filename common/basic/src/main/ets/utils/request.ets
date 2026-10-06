@@ -21,7 +21,7 @@ async function requestHttp<T>(url: string = "", method: http.RequestMethod = htt
   if (method === http.RequestMethod.GET) {
     if (data && Object.keys(data).length) {
       urlStr += "?" + Object.keys(data).filter(key =>!! data[key]).map(key => {
-        return `${key}=${data[key]}`
+        return `${encodeURIComponent(key)}=${encodeURIComponent(String(data[key]))}`
       }).join("&")
     }
   }

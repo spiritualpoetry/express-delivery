@@ -13,26 +13,38 @@ struct TaskList {
     {
       status: TaskTypeEnum.Waiting, // 待提货的类型
       page: 1, // 第几页
-      pageSize: 5 // 每页几条数据
-    } as TaskListParams
+      pageSize: 5, // 每页几条数据
+      startTime: null, endTime: null, transportTaskId: null
+    }
   )
   @State
   taskListData: TaskInfoItem[] = []
   @State
   allPage: number = 1 // 默认只有一页
+  @State requesting: boolean = false
+  @State taskNumber: string = ''
+  @State startDate: string = ''
+  @State endDate: string = ''
 
-  async getTaskList(append: boolean) {
-    const result = await getTaskList(this.queryParams)
-    // 追加数据
-    // this.taskListData = this.taskListData.concat(result.items) // 拿到返回的数组
-    if (append) {
-      this.taskListData.push(...result.items || []) // 延展运算符的写法  有可能为null，所以添加短路表达式 ||[] 短路表达式
-    } else {
-      this.taskListData = result.items // 直接赋值
+  async getTaskList(append: boolean): Promise<boolean> {
+    if (this.requesting) { return false }
+    this.requesting = true
+    try {
+      const result = await getTaskList(this.queryParams)
+      if (append) {
+        this.taskListData.push(...(result.items || []))
+      } else {
+        this.taskListData = result.items || []
+      }
+      this.allPage = result.pages // 总页数
+      this.queryParams.page++ // 下次请求的页码
+      return true
+    } catch (error) {
+      // 请求层提示失败；不推进页码，允许重试。
+      return false
+    } finally {
+      this.requesting = false
     }
-
-    this.allPage = result.pages // 总页数
-    this.queryParams.page++ // 下次请求的页码
   }
 
   @Builder
@@ -42,32 +54,115 @@ struct TaskList {
 
   // 下拉刷新函数
   async onRefresh() {
+    if (this.requesting) { return }
     // 重新请求第一页数据
+    const previousPage = this.queryParams.page
     this.queryParams.page = 1 // 重置第一页
-    await this.getTaskList(false) // 直接赋值
+    if (!await this.getTaskList(false)) {
+      this.queryParams.page = previousPage // 刷新失败时保留原分页，避免重复追加第一页。
+    }
+  }
+
+  selectDate(start: boolean) {
+    const selectedDate = start ? this.startDate : this.endDate
+    DatePickerDialog.show({
+      selected: selectedDate ? new Date(selectedDate + 'T00:00:00') : new Date(),
+      onDateAccept: (value: Date) => {
+        const date = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+        if (start) { this.startDate = date } else { this.endDate = date }
+      }
+    })
+  }
+
+  async applyFilter() {
+    if (this.requesting) { return }
+    if (this.startDate && this.endDate && this.startDate > this.endDate) {
+      promptAction.showToast({ message: '开始时间不能晚于结束时间' })
+      return
+    }
+    this.queryParams.transportTaskId = this.taskNumber.trim() || null
+    this.queryParams.startTime = this.startDate || null
+    this.queryParams.endTime = this.endDate || null
+    this.taskListData = [] // 新条件不能继续追加到旧条件的结果。
+    this.queryParams.page = 1
+    this.allPage = 1
+    await this.onRefresh()
+  }
+
+  @Builder
+  getSearchForm() {
+    Column() {
+      Row() {
+        Search({ value: this.taskNumber, placeholder: '请输入任务编号' })
+          .backgroundColor($r('app.color.background_page')).height(32)
+          .onChange((value: string) => { this.taskNumber = value })
+          .onSubmit(() => { this.applyFilter() })
+      }
+      .justifyContent(FlexAlign.Center)
+      .padding({ left: 15, right: 15, bottom: 5 })
+
+      Row() {
+        // 完成搜索页需要测试点击之后键盘和弹层同时弹出的情况
+        Button(this.startDate || '开始时间')
+          .fontSize(14)
+          .width(106)
+          .height(32)
+          .padding({ left: 0, right: 0 })
+          .fontColor('#999')
+          .backgroundColor($r('app.color.background_page'))
+          .onClick(() => { this.selectDate(true) })
+
+        Text("至")
+        Button(this.endDate || '结束时间')
+          .fontSize(14)
+          .width(110)
+          .height(32)
+          .padding({ left: 0, right: 0 })
+          .fontColor('#999')
+          .backgroundColor($r('app.color.background_page'))
+          .onClick(() => { this.selectDate(false) })
+        Button("筛选")
+          .backgroundColor($r('app.color.primary'))
+          .height(32)
+          .width(60)
+          .enabled(!this.requesting)
+          .onClick(() => { this.applyFilter() })
+      }.width('100%').alignItems(VerticalAlign.Center).justifyContent(FlexAlign.SpaceAround)
+    }
+    .backgroundColor($r('app.color.white'))
+    .padding(15)
+    .justifyContent(FlexAlign.Center)
+    .width('100%')
   }
 
   build() {
-    HmList({
-      dataSource: this.taskListData, // 数据源
-      finished: this.allPage < this.queryParams.page, // 是否还有下一页
-      // 上拉加载的函数
-      onLoad: async () => {
-        // 上拉加载
-        await this.getTaskList(true) // 追加逻辑
-      },
-      onRefresh: async () => {
-        // 下拉刷新
-        await this.onRefresh()
-      },
-      renderItem: (item: object) => {
-        // 如果需要的是builderParams的参数 可以用普通函数包裹一个Builder的函数
-        this.renderItem(item)
-      },
-      loadingText: '拼命加载中',
-      finishText: '没啦没啦'
-    })
-      .height("100%")
+    Column(){
+      //是否显示搜索的条件
+      if (this.queryParams.status===TaskTypeEnum.Finish){
+        //显示搜索条件
+        this.getSearchForm()
+      }
+      HmList({
+        dataSource: this.taskListData, // 数据源
+        finished: this.allPage < this.queryParams.page, // 是否还有下一页
+        // 上拉加载的函数
+        onLoad: async () => {
+          // 上拉加载
+          await this.getTaskList(true) // 追加逻辑
+        },
+        onRefresh: async () => {
+          // 下拉刷新
+          await this.onRefresh()
+        },
+        renderItem: (item: object) => {
+          // 如果需要的是builderParams的参数 可以用普通函数包裹一个Builder的函数
+          this.renderItem(item)
+        },
+        loadingText: '拼命加载中',
+        finishText: '没啦没啦'
+      })
+        .layoutWeight(1)
+    }.height('100%')
   }
 }
 

@@ -7,11 +7,11 @@ struct TaskItemCard {
   taskItemData: TaskInfoItemModel = new TaskInfoItemModel({} as TaskInfoItem)
 
   //提货按钮是否可用
-  getBtnEnable(){
+  getBtnEnable() {
     if (this.taskItemData.enablePickUp) {
       return true
     }
-    switch (this.taskItemData.status.toString()){
+    switch (this.taskItemData.status.toString()) {
       case TaskTypeEnum.Line.toString():
         return true
       case TaskTypeEnum.Delivered.toString():
@@ -20,20 +20,21 @@ struct TaskItemCard {
         return false
     }
   }
+
   //声明一个去提货方法
-  toPickUp(){
+  toPickUp() {
     router.pushUrl({
-      url:'pages/ TaskDetail/TaskDetail',
-      params:{
-        id:this.taskItemData.id
+      url: 'pages/TaskDetail/TaskDetail',
+      params: {
+        id: this.taskItemData.id
       }
     })
   }
 
   //封装获取按钮显示的文本
-  getBtnText(){
+  getBtnText() {
     //status虽然类型是string，但实际值是number
-    switch (this.taskItemData.status.toString()){
+    switch (this.taskItemData.status.toString()) {
       case TaskTypeEnum.Waiting.toString():
         return "提货"
       case TaskTypeEnum.Line.toString():
@@ -48,7 +49,7 @@ struct TaskItemCard {
   build() {
     Column() {
       Row() {
-        Text(`任务编号：${this.taskItemData.id}`)
+        Text(`任务编号：${this.taskItemData.transportTaskId}`)
         // Text("任务编号：12138")
           .fontSize(16)
           .fontColor($r("app.color.text_primary"))
@@ -95,24 +96,47 @@ struct TaskItemCard {
       Row() {
         Column() {
           Text('提货时间').fontSize(14).fontColor($r('app.color.text_secondary'))
-          Text(this.taskItemData.planDepartureTime).fontSize(14).fontColor($r('app.color.text_secondary')).margin({ top: 4 })
+          Text(this.taskItemData.planDepartureTime)
+            .fontSize(14)
+            .fontColor($r('app.color.text_secondary'))
+            .margin({ top: 4 })
           // Text("2022.01.20").fontSize(14).fontColor($r('app.color.text_secondary')).margin({ top: 4 })
         }.alignItems(HorizontalAlign.Start)
 
-        Button(this.getBtnText(), { type: ButtonType.Capsule })
-          .backgroundColor($r('app.color.primary'))
-          .fontColor($r("app.color.white"))
-          .fontSize(14)
-          .height(32)
-          .enabled(this.getBtnEnable())
-          .onClick(()=>{
-            this.toPickUp()
-          })
+        //ts的模型叫鸭子 结构类型
+        //名字可以不一样，但是结构一样也能匹配类型
+        if (parseInt(this.taskItemData.status) !== TaskTypeEnum.Finish) {
+          Button(this.getBtnText(), { type: ButtonType.Capsule })
+            .backgroundColor($r('app.color.primary'))
+            .fontColor($r("app.color.white"))
+            .fontSize(14)
+            .height(32)
+            .enabled(this.getBtnEnable())
+            .onClick(() => {
+              this.toPickUp()
+            })
+        }
 
       }.justifyContent(FlexAlign.SpaceBetween).width('100%')
     }
+    //在已完成的情况下taskItemData.status == TaskTypeEnum.Finish ，可以点击卡片看详情页
+    .onClick(() => {
+      if (parseInt(this.taskItemData.status) == TaskTypeEnum.Finish) {
+        router.pushUrl({
+          url: 'pages/TaskDetail/TaskDetail',
+          params: {
+            id: this.taskItemData.id
+          }
+        })
+      }
+    })
     .margin({ left: 15, right: 15, top: 15 })
-    .padding({ left: 19.5, right: 19.5, bottom: 18.5, top: 18.5 })
+    .padding({
+      left: 19.5,
+      right: 19.5,
+      bottom: 18.5,
+      top: 18.5
+    })
     .borderRadius(10)
     .backgroundColor($r('app.color.white'))
 

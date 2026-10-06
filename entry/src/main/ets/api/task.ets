@@ -34,6 +34,7 @@ export const delay = (params:DelayParamsTypeModel) => {
   return Request.put<null>("/tasks/delay",params)
 }
 
+//上报异常
 export const reportException = (params: ExceptionParamsType) => {
   return Request.post<null>("/tasks/reportException", params)
 }
