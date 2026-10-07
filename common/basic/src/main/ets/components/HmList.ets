@@ -98,6 +98,10 @@ struct HmList {
           this.getBottomDisplay()
         }
       }
+      .width('100%')
+      .height('100%')
+      // 空列表或内容不足一屏时，也允许拖动并触发下拉刷新。
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       .onReachEnd(async ()=>{
         //实现上拉加载
         //需要一个标记 ： 是否已经加载完所有数据
@@ -110,6 +114,8 @@ struct HmList {
         }
       })
     }
+    .width('100%')
+    .height('100%')
     .onStateChange(async (state) => {
       this.refreshStatus=state//记录状态
       // 实现下拉刷新

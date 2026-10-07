@@ -1,0 +1,6 @@
+{
+  "name": "fast-driver-mock-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "start": "node server.cjs", "test": "node --test server.test.cjs" }
+}

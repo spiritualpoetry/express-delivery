@@ -13,8 +13,8 @@ struct Login {
 
   @State
   accountForm:LoginFormModel= new LoginFormModel({
-    account:'hongmeng',
-    password:'123456'
+    account:'demo', // 本地模拟账号；原代码：account:'hongmeng'
+    password:'mock123456' // 本地模拟密码；原代码：password:'123456'
   } as LoginForm)
 
   @Styles

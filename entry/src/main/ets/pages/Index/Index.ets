@@ -6,6 +6,11 @@ import TaskTabs from './Task/TaskTab'
 @Component
 
 struct Index {
+  @State taskRefreshVersion: number = 0
+
+  onPageShow(): void {
+    this.taskRefreshVersion++ // 从提货、交付等页面返回后重新查询任务。
+  }
 
 
   @State
@@ -55,7 +60,7 @@ struct Index {
       ForEach(this.tabsData, (item: TabClass) => {
           TabContent() {
             if (item.name==="task") {
-              TaskTabs()
+              TaskTabs({ active: this.currentIndex === 0, refreshVersion: this.taskRefreshVersion })
             }else if (item.name==="message") {
               TestCom({titile:'消息'})
             }else {

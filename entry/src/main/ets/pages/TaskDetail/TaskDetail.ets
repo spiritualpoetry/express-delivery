@@ -253,6 +253,21 @@ struct TaskDetail {
     }
   }
 
+  async openCarRecord() {
+    if (!this.taskDetailData.id) {
+      promptAction.showToast({ message: '任务详情尚未加载，请稍后重试' })
+      return
+    }
+    try {
+      await router.pushUrl({
+        url: 'pages/CarRecord/CarRecord',
+        params: { id: this.taskDetailData.id }
+      })
+    } catch (error) {
+      promptAction.showToast({ message: '无法打开回车登记页面，请稍后重试' })
+    }
+  }
+
   async callHandover() {
     const phone = (this.taskDetailData.startHandoverPhone || '').trim()
     if (!phone) {
@@ -395,7 +410,7 @@ struct TaskDetail {
           })
         Button("提货", { type: ButtonType.Capsule })
           .enabled(this.getPickUpState())
-          .backgroundColor($r('app.color.primary_disabled'))
+          .backgroundColor(this.getPickUpState() ? $r('app.color.primary') : $r('app.color.primary_disabled'))
           .fontColor($r('app.color.white'))
           .height(50)
           .flexGrow(1)
@@ -422,7 +437,7 @@ struct TaskDetail {
           .onClick(() => {
             this.btnDeliver()
           })
-          .backgroundColor($r('app.color.primary_disabled'))
+          .backgroundColor(this.getDeliverState() ? $r('app.color.primary') : $r('app.color.primary_disabled'))
           .fontColor($r('app.color.white'))
           .height(50)
           .enabled(this.getDeliverState())
@@ -437,12 +452,7 @@ struct TaskDetail {
             .height(50)
             .width('80%')
             .onClick(() => {
-              router.pushUrl({
-                url: "/pages/CarRecord/CarRecord",
-                params: {
-                  id: this.taskDetailData.id
-                }
-              })
+              this.openCarRecord()
             })
         }.width('100%').justifyContent(FlexAlign.Center)
       }

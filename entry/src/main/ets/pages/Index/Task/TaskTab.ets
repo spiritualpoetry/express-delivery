@@ -6,6 +6,8 @@ import {TaskListParamsModel,TaskListParams,TaskTypeEnum} from "../../../models"
 @Preview
 @Component
 struct TaskTabs{
+  @Prop active: boolean = true
+  @Prop refreshVersion: number = 0
   tabController:TabsController= new TabsController()
   @State
   tabsData: TabClass[] = [{
@@ -52,15 +54,17 @@ struct TaskTabs{
         ForEach(this.tabsData,(item:TabClass)=>{
           TabContent(){
             if (item.name==="waiting") {
-              TaskList()
+              TaskList({ active: this.active && this.currentIndex === 0, refreshVersion: this.refreshVersion })
             }else if (item.name==="line") {
-              TaskList({ queryParams: new TaskListParamsModel({
+              TaskList({ active: this.active && this.currentIndex === 1, refreshVersion: this.refreshVersion,
+                queryParams: new TaskListParamsModel({
                 page: 1,
                 pageSize: 5,
                 status: TaskTypeEnum.Line
               } as TaskListParams) })
             }else if (item.name==="finish") {
-              TaskList({ queryParams: new TaskListParamsModel({
+              TaskList({ active: this.active && this.currentIndex === 2, refreshVersion: this.refreshVersion,
+                queryParams: new TaskListParamsModel({
                 page: 1,
                 pageSize: 5,
                 status: TaskTypeEnum.Finish
