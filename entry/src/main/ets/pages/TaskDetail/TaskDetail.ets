@@ -6,6 +6,13 @@ import HmSkeleton from '@hm/basic/src/main/ets/components/HmSkeleton';
 import { PickUpParamsModel, TaskTypeEnum, DeliverParamsTypeModel, ExceptionList } from '../../models';
 import common from '@ohos.app.ability.common';
 import call from '@ohos.telephony.call'
+import { MessageEvents, worker } from '@kit.ArkTS';
+import { fileIo } from '@kit.CoreFileKit';
+
+interface CompressResult {
+  files: ImageList[]
+  error?: string
+}
 
 
 @Entry
@@ -318,76 +325,89 @@ struct TaskDetail {
     }
   }
 
-  //封装一个去提货的方法
-  async btnPickUp() {
-    if (!this.getPickUpState() || this.taskDetailData.status !== TaskTypeEnum.Waiting) {
-      return
+  // 压缩失败、上传失败和超时均交由提交流程处理。
+  async compressAndUpload(files: ImageList[]): Promise<ImageList[]> {
+    const compressor = new worker.ThreadWorker('entry/ets/workers/UploadWorker.ets')
+    let compressed: ImageList[] = []
+    let timeoutId: number = -1
+    try {
+      compressed = await new Promise<ImageList[]>((resolve, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Image compression timed out')), 60000)
+        compressor.onmessage = (event: MessageEvents) => {
+          const result = event.data as CompressResult
+          if (result.error) {
+            reject(new Error(result.error))
+          } else {
+            resolve(result.files)
+          }
+        }
+        compressor.onerror = () => reject(new Error('Image compression failed'))
+        compressor.onmessageerror = () => reject(new Error('Invalid worker message'))
+        compressor.postMessage({ files: [...files], filePath: getContext(this).cacheDir })
+      })
+      clearTimeout(timeoutId)
+      const localFiles = compressed.filter((file: ImageList) => !file.url.startsWith('http://') && !file.url.startsWith('https://'))
+      const uploaded = localFiles.length > 0 ? await UploadFile(localFiles) : []
+      let uploadIndex = 0
+      return compressed.map((file: ImageList) => {
+        if (file.url.startsWith('http://') || file.url.startsWith('https://')) { return file }
+        return uploaded[uploadIndex++]
+      })
+    } finally {
+      if (timeoutId !== -1) { clearTimeout(timeoutId) }
+      try { compressor.terminate() } catch (_) {}
+      for (const file of compressed) {
+        if (file.url.startsWith(getContext(this).cacheDir + '/')) {
+          try { fileIo.unlinkSync(file.url) } catch (_) {}
+        }
+      }
     }
+  }
+
+  async btnPickUp() {
+    if (!this.getPickUpState() || this.taskDetailData.status !== TaskTypeEnum.Waiting) { return }
     this.submitting = true
     try {
       this.loading.open()
-      const cargoPickUpPictureList = await UploadFile(this.taskDetailData.cargoPickUpPictureList) //传入提货凭证
-      const cargoPictureList = await UploadFile(this.taskDetailData.cargoPictureList) //
-      //提货操作
-      await pick_Up(
-        new PickUpParamsModel({
-          id: this.taskDetailData.id,
-          cargoPickUpPictureList,
-          cargoPictureList
-        }))
-      // 提交成功后先更新本地状态，避免刷新失败时再次提交同一操作。
+      const cargoPickUpPictureList = await this.compressAndUpload(this.taskDetailData.cargoPickUpPictureList)
+      const cargoPictureList = await this.compressAndUpload(this.taskDetailData.cargoPictureList)
+      await pick_Up(new PickUpParamsModel({ id: this.taskDetailData.id, cargoPickUpPictureList, cargoPictureList }))
       this.taskDetailData.status = TaskTypeEnum.Line
       this.taskDetailData.cargoPickUpPictureList = cargoPickUpPictureList
       this.taskDetailData.cargoPictureList = cargoPictureList
-      //重新获取数据
-
-      await this.getTaskDetail(this.taskDetailData.id) //重新拉取数据
-      //滚动到顶部
+      await this.getTaskDetail(this.taskDetailData.id)
       this.scroller.scrollEdge(Edge.Top)
       promptAction.showToast({ message: '提货成功' })
-    } catch (error) {
-      promptAction.showToast({ message: '提货失败，请检查网络或图片后重试' })
+    } catch (_) {
+      promptAction.showToast({ message: '提货失败，请重试' })
     } finally {
-      this.loading.close()
       this.submitting = false
+      this.loading.close()
     }
   }
 
-  //封装一个去交货的方法
   async btnDeliver() {
-    if (!this.getDeliverState() || this.taskDetailData.status !== TaskTypeEnum.Line) {
-      return
-    }
+    if (!this.getDeliverState() || this.taskDetailData.status !== TaskTypeEnum.Line) { return }
     this.submitting = true
     try {
       this.loading.open()
-      const certificatePictureList = await UploadFile(this.taskDetailData.certificatePictureList)
-      const deliverPictureList = await UploadFile(this.taskDetailData.deliverPictureList)
-      //交货操作
-      await deliver(
-        new DeliverParamsTypeModel({
-          id: this.taskDetailData.id,
-          certificatePictureList,
-          deliverPictureList
-        }))
+      const certificatePictureList = await this.compressAndUpload(this.taskDetailData.certificatePictureList)
+      const deliverPictureList = await this.compressAndUpload(this.taskDetailData.deliverPictureList)
+      await deliver(new DeliverParamsTypeModel({ id: this.taskDetailData.id, certificatePictureList, deliverPictureList }))
       this.taskDetailData.status = TaskTypeEnum.Delivered
       this.taskDetailData.certificatePictureList = certificatePictureList
       this.taskDetailData.deliverPictureList = deliverPictureList
-      //重新获取数据
-
-      await this.getTaskDetail(this.taskDetailData.id) //重新拉取数据
-      //滚动到顶部
+      await this.getTaskDetail(this.taskDetailData.id)
       this.scroller.scrollEdge(Edge.Top)
       promptAction.showToast({ message: '交货成功' })
-    } catch (error) {
-      promptAction.showToast({ message: '交货失败，请检查网络或图片后重试' })
+    } catch (_) {
+      promptAction.showToast({ message: '交货失败，请重试' })
     } finally {
-      this.loading.close()
       this.submitting = false
+      this.loading.close()
     }
   }
 
-  // 底部按钮结构
   @Builder
   getBottomBtn() {
     //已完成不显示任何按钮
