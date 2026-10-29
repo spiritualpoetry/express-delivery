@@ -22,7 +22,9 @@ async function uploadSingleImage(context: Context, file: request.File): Promise<
   return new Promise<ImageList>((resolve, reject) => {
       let imageUrl: string = ''
       let failureMessage: string = ''
+      let timeoutId: number = -1
       const cleanup = (): void => {
+        if (timeoutId !== -1) { clearTimeout(timeoutId) }
         try {
           task.off('headerReceive')
           task.off('complete')
@@ -31,6 +33,12 @@ async function uploadSingleImage(context: Context, file: request.File): Promise<
           // 不让取消事件监听的错误覆盖上传结果。
         }
       }
+      // 系统上传可能持续重试；给页面一个明确的失败恢复时间。
+      timeoutId = setTimeout(() => {
+        cleanup()
+        try { task.remove().catch(() => {}) } catch (_) {}
+        reject(new Error('图片上传超时，请检查网络后重试'))
+      }, 30000)
       task.on("fail", () => {
         // 上传失败
         cleanup()
