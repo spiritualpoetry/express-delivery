@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const os = require('node:os');
+const { DRIVER, TRUCK, ANNOUNCEMENTS, taskDispatchContent } = require('./fixtures.cjs');
 const TOKEN = 'mock-driver-demo-token';
 const TYPES = ['发动机启动困难', '不着车', '漏油', '漏水', '照明失灵', '有异响', '排烟异常', '温度异常', '其他'];
 const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=', 'base64');
@@ -19,9 +20,10 @@ function seedMessages(tasks) {
   const created = stamp();
   const base = { bussinessType: 2, created, createUser: 0, isRead: 0, readTime: '', updated: created, updateUser: 0, userId: 1 };
   return [
-    { ...base, id: 1, contentType: 200, title: '系统公告', content: '欢迎使用司机服务，请及时查看运输任务与通知。', relevantId: '' },
+    ...ANNOUNCEMENTS.map((announcement, i) => ({ ...base, ...announcement, contentType: 200, relevantId: '',
+      created: stamp(new Date(Date.now() - (i + 1) * 86400000)) })),
     ...tasks.map((task, i) => ({ ...base, id: i + 2, contentType: 201, title: '运输任务通知',
-      content: `运输任务 ${task.transportTaskId}：${task.startAddress} → ${task.endAddress}`, relevantId: task.id }))
+      content: taskDispatchContent(task), relevantId: task.id }))
   ];
 }
 function check(condition, message, status = 400) {
@@ -124,12 +126,9 @@ function createServer(options = {}) {
       }
       check(text(req.headers.authorization).replace(/^Bearer\s+/i, '') === TOKEN, '请登录后重试', 401);
       if (req.method === 'GET' && route === '/driver/users') return respond(200, {
-        name: '陈志远', number: 'DRIVER001', phone: '', avatar: origin + '/assets/driver.svg'
+        ...DRIVER, avatar: origin + '/assets/driver.svg'
       });
-      if (req.method === 'GET' && route === '/driver/users/truck') return respond(200, {
-        id: 'mock-truck-1', licensePlate: '京B23001', allowableLoad: '8吨',
-        currentOrganName: '运输中心', truckType: '厢式货车', pictureList: []
-      });
+      if (req.method === 'GET' && route === '/driver/users/truck') return respond(200, TRUCK);
       if (req.method === 'GET' && route === '/driver/messages/page') {
         const q = url.searchParams;
         const page = Number(q.get('page')), pageSize = Number(q.get('pageSize')), contentType = Number(q.get('contentType'));

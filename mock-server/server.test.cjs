@@ -144,7 +144,7 @@ test('HTTP workflow, filtering, upload and persistent task state', async () => {
     assert.equal((await api('/driver/tasks/reportException','POST',exception)).code,'200');
     assert.equal((await api('/driver/tasks/deliver','POST',{id:original.id,certificatePictureList:picture,deliverPictureList:picture})).code,200);
     assert.equal((await api('/driver/tasks/truckRegistration','POST',{id:original.transportTaskId,startTime:'2026-10-07 18:00:00',endTime:'2026-10-07 21:00:00'})).code,200);
-    assert.equal((await api('/driver/users')).data.number,'DRIVER001');
+    assert.equal((await api('/driver/users')).data.number,'SJ310027');
     assert.equal((await api('/driver/users/taskReport?year=2026&month=10')).code,200);
     await stop(); base = await start();
     const detail = (await api('/driver/tasks/details/'+original.id)).data;
