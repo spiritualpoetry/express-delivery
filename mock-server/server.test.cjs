@@ -4,6 +4,89 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { createServer } = require('./server.cjs');
+const { normalizeDisplay } = require('./normalize-display.cjs');
+
+test('display migration preserves business state and is idempotent', () => {
+  const before = { tasks: [{ id: 'job-17', status: 4, driverName: '陈志远（演示）',
+    startAddress: '物流中心（演示）', cargoPictureList: [{ url: 'http://host/photo.jpg' }],
+    exceptionList: [{ exceptionDescribe: '模拟故障记录' }] }],
+    messages: [{ id: 1, title: '本地演示公告', content: '欢迎使用本地模拟服务，所有任务与消息均为演示数据。',
+      isRead: 1, readTime: '2026-10-30 19:00:00' }], extra: 'preserved' };
+  const after = normalizeDisplay(before);
+  assert.equal(before.tasks[0].driverName, '陈志远（演示）');
+  assert.deepEqual(after, { ...before,
+    tasks: [{ ...before.tasks[0], driverName: '陈志远', startAddress: '物流中心' }],
+    messages: [{ ...before.messages[0], title: '系统公告', content: '欢迎使用司机服务，请及时查看运输任务与通知。' }] });
+  assert.deepEqual(normalizeDisplay(after), after);
+});
+
+test('message migration, pagination, read state, authentication and vehicle contract', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fast-driver-message-test-'));
+  const { createWaitingTask } = require('./fixtures.cjs');
+  const tasks = Array.from({ length: 12 }, (_, i) => createWaitingTask(`job-${i+1}`, String(100001+i), i));
+  fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({ tasks, preserved: 'keep' }));
+  let server, base;
+  async function start() {
+    server = createServer({ dataDir });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    base = `http://127.0.0.1:${server.address().port}`;
+  }
+  async function stop() {
+    server.closeIdleConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
+  async function api(route, method = 'GET', auth = true) {
+    return (await fetch(base + '/driver' + route, { method,
+      headers: auth ? { Authorization: 'mock-driver-demo-token' } : {} })).json();
+  }
+  const list = '/messages/page?page=1&pageSize=10&contentType=201';
+  try {
+    await start();
+    assert.equal((await api(list, 'GET', false)).code, 401);
+    assert.equal((await api('/messages/2', 'PUT', false)).code, 401);
+    assert.equal((await api('/messages/readAll/201', 'PUT', false)).code, 401);
+    assert.equal((await api('/users/truck', 'GET', false)).code, 401);
+    const first = (await api(list)).data;
+    assert.doesNotMatch(JSON.stringify(first), /演示|模拟/);
+    assert.equal(first.counts, 12); assert.equal(first.pages, 2); assert.equal(first.items.length, 10);
+    const second = (await api('/messages/page?page=2&pageSize=10&contentType=201')).data;
+    assert.equal(second.items.length, 2);
+    assert.equal(first.items.some(a => second.items.some(b => a.id === b.id)), false);
+    assert.equal((await api('/tasks/details/' + first.items[0].relevantId)).code, 200);
+    const messageId = first.items[0].id;
+    assert.equal((await api('/messages/' + messageId, 'PUT')).code, 200);
+    const read = (await api(list)).data.items.find(m => m.id === messageId);
+    assert.equal(read.isRead, 1); assert.ok(read.readTime);
+    assert.equal((await api('/messages/' + messageId, 'PUT')).code, 200);
+    assert.equal((await api(list)).data.items.find(m => m.id === messageId).readTime, read.readTime);
+    assert.equal((await api('/messages/999999', 'PUT')).code, 404);
+    assert.equal((await api('/messages/page?page=0&pageSize=10&contentType=201')).code, 400);
+    assert.equal((await api('/messages/page?page=1&pageSize=101&contentType=201')).code, 400);
+    assert.equal((await api('/messages/page?page=1&pageSize=10&contentType=202')).code, 400);
+    assert.equal((await api('/messages/readAll/202', 'PUT')).code, 400);
+    assert.equal((await api('/messages/page?page=3&pageSize=10&contentType=201')).data.items.length, 0);
+    assert.equal((await api('/messages/readAll/201', 'PUT')).code, 200);
+    assert.ok((await api(list)).data.items.every(m => m.isRead === 1));
+    assert.equal((await api('/messages/page?page=1&pageSize=10&contentType=200')).data.items[0].isRead, 0);
+    const truck = (await api('/users/truck')).data;
+    assert.doesNotMatch(JSON.stringify(truck), /演示|模拟/);
+    for (const key of ['allowableLoad', 'currentOrganName', 'id', 'licensePlate', 'truckType']) assert.equal(typeof truck[key], 'string');
+    assert.ok(Array.isArray(truck.pictureList));
+    await stop(); await start();
+    assert.equal((await api(list)).data.counts, 12);
+    assert.ok((await api('/messages/page?page=2&pageSize=10&contentType=201')).data.items.every(m => m.isRead === 1));
+    let saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'db.json'), 'utf8'));
+    assert.deepEqual(saved.tasks, tasks); assert.equal(saved.preserved, 'keep');
+    await stop();
+    saved.messages = [];
+    fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify(saved));
+    await start();
+    assert.equal((await api(list)).data.counts, 0);
+  } finally {
+    if (server?.listening) await stop();
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+});
 
 test('HTTP workflow, filtering, upload and persistent task state', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fast-driver-mock-test-'));
@@ -61,7 +144,7 @@ test('HTTP workflow, filtering, upload and persistent task state', async () => {
     assert.equal((await api('/driver/tasks/reportException','POST',exception)).code,'200');
     assert.equal((await api('/driver/tasks/deliver','POST',{id:original.id,certificatePictureList:picture,deliverPictureList:picture})).code,200);
     assert.equal((await api('/driver/tasks/truckRegistration','POST',{id:original.transportTaskId,startTime:'2026-10-07 18:00:00',endTime:'2026-10-07 21:00:00'})).code,200);
-    assert.equal((await api('/driver/users')).data.number,'MOCK001');
+    assert.equal((await api('/driver/users')).data.number,'DRIVER001');
     assert.equal((await api('/driver/users/taskReport?year=2026&month=10')).code,200);
     await stop(); base = await start();
     const detail = (await api('/driver/tasks/details/'+original.id)).data;

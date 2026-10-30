@@ -132,10 +132,20 @@ struct My {
           HmCardItem({
             leftTitle:"车辆信息",
             rightText:"",
+            onRightClick:()=>{
+              router.pushUrl({
+                url: 'pages/Car/Car_Message'
+              })
+            }
           })
           HmCardItem({
             leftTitle:"任务数据",
             rightText:"",
+            onRightClick:()=>{
+              router.pushUrl({
+                url: 'pages/UserTask/UserTask'
+              })
+            }
           })
           HmCardItem({ leftTitle: '系统设置', rightText: '', onRightClick: () => {
             router.pushUrl({

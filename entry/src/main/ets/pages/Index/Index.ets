@@ -1,6 +1,7 @@
 import  {TabClass} from  '@hm/basic'
 import My from './My/My'
 import TaskTabs from './Task/TaskTab'
+import Message from './Message/Message'
 
 @Entry
 @Component
@@ -62,7 +63,7 @@ struct Index {
             if (item.name==="task") {
               TaskTabs({ active: this.currentIndex === 0, refreshVersion: this.taskRefreshVersion })
             }else if (item.name==="message") {
-              TestCom({titile:'消息'})
+              Message()
             }else {
               My()
             }

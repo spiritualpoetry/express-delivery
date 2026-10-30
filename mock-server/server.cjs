@@ -15,6 +15,15 @@ function seed() {
   const { createWaitingTask } = require('./fixtures.cjs');
   return { tasks:Array.from({length:24},(_,i)=>createWaitingTask(`job-${i+1}`,String(100001+i),i)) };
 }
+function seedMessages(tasks) {
+  const created = stamp();
+  const base = { bussinessType: 2, created, createUser: 0, isRead: 0, readTime: '', updated: created, updateUser: 0, userId: 1 };
+  return [
+    { ...base, id: 1, contentType: 200, title: '系统公告', content: '欢迎使用司机服务，请及时查看运输任务与通知。', relevantId: '' },
+    ...tasks.map((task, i) => ({ ...base, id: i + 2, contentType: 201, title: '运输任务通知',
+      content: `运输任务 ${task.transportTaskId}：${task.startAddress} → ${task.endAddress}`, relevantId: task.id }))
+  ];
+}
 function check(condition, message, status = 400) {
   if (!condition) throw Object.assign(new Error(message), { status });
 }
@@ -65,7 +74,7 @@ function multipart(buffer, contentType) {
   if (file.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) extension = 'png';
   else if (file[0] === 255 && file[1] === 216 && file[2] === 255) extension = 'jpg';
   else if (file.subarray(0, 4).toString() === 'RIFF' && file.subarray(8, 12).toString() === 'WEBP') extension = 'webp';
-  check(extension, '模拟上传支持 PNG、JPEG、WebP 图片');
+  check(extension, '图片上传支持 PNG、JPEG、WebP 图片');
   return { file, extension };
 }
 function createServer(options = {}) {
@@ -79,7 +88,9 @@ function createServer(options = {}) {
     fs.renameSync(storePath + '.tmp', storePath);
     db = next;
   }
-  if (!fs.existsSync(storePath)) save(db);
+  // Migrate old task-only databases once; an intentionally empty message list stays empty.
+  if (!Array.isArray(db.messages)) save({ ...db, messages: seedMessages(db.tasks) });
+  else if (!fs.existsSync(storePath)) save(db);
   const server = http.createServer(async (req, res) => {
     function respond(code, data = null, msg = '成功', httpStatus = 200) {
       res.writeHead(httpStatus, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -107,14 +118,44 @@ function createServer(options = {}) {
       }
       if (req.method === 'POST' && route === '/driver/login/account') {
         const form = JSON.parse((await body(req, 1024 * 1024)).toString());
-        check(form.account === 'demo' && form.password === 'mock123456', '模拟账号或密码错误', 401);
+        check(form.account === 'demo' && form.password === 'mock123456', '账号或密码错误', 401);
         // App reads data as token; msg also contains it to match the supplied login description.
         return respond(200, TOKEN, TOKEN);
       }
-      check(text(req.headers.authorization).replace(/^Bearer\s+/i, '') === TOKEN, '请使用模拟账号登录', 401);
+      check(text(req.headers.authorization).replace(/^Bearer\s+/i, '') === TOKEN, '请登录后重试', 401);
       if (req.method === 'GET' && route === '/driver/users') return respond(200, {
-        name: '陈志远（演示）', number: 'MOCK001', phone: '', avatar: origin + '/assets/driver.svg'
+        name: '陈志远', number: 'DRIVER001', phone: '', avatar: origin + '/assets/driver.svg'
       });
+      if (req.method === 'GET' && route === '/driver/users/truck') return respond(200, {
+        id: 'mock-truck-1', licensePlate: '京B23001', allowableLoad: '8吨',
+        currentOrganName: '运输中心', truckType: '厢式货车', pictureList: []
+      });
+      if (req.method === 'GET' && route === '/driver/messages/page') {
+        const q = url.searchParams;
+        const page = Number(q.get('page')), pageSize = Number(q.get('pageSize')), contentType = Number(q.get('contentType'));
+        check(Number.isInteger(page) && page >= 1 && Number.isInteger(pageSize) && pageSize >= 1 && pageSize <= 100, '分页参数不正确');
+        check([200, 201].includes(contentType), '消息类型不正确');
+        const rows = db.messages.filter(m => m.contentType === contentType)
+          .sort((a, b) => b.created.localeCompare(a.created) || b.id - a.id);
+        return respond(200, { counts: rows.length, page, pageSize, pages: Math.ceil(rows.length / pageSize),
+          items: rows.slice((page - 1) * pageSize, page * pageSize) });
+      }
+      const allRead = /^\/driver\/messages\/readAll\/(\d+)$/.exec(route);
+      const singleRead = /^\/driver\/messages\/(\d+)$/.exec(route);
+      if (req.method === 'PUT' && (allRead || singleRead)) {
+        const next = JSON.parse(JSON.stringify(db));
+        const id = Number((allRead || singleRead)[1]);
+        if (allRead) check([200, 201].includes(id), '消息类型不正确');
+        else check(next.messages.some(m => m.id === id), '消息不存在', 404);
+        const now = stamp();
+        for (const message of next.messages) {
+          if ((allRead ? message.contentType === id : message.id === id) && message.isRead === 0) {
+            message.isRead = 1; message.readTime = now; message.updated = now;
+          }
+        }
+        save(next);
+        return respond(200);
+      }
       if (req.method === 'GET' && route === '/driver/users/taskReport') {
         const year = Number(url.searchParams.get('year')), month = Number(url.searchParams.get('month'));
         check(Number.isInteger(year) && year >= 2000 && Number.isInteger(month) && month >= 1 && month <= 12, '年月不正确');
@@ -155,7 +196,7 @@ function createServer(options = {}) {
       }
       const methods = {'/driver/tasks/takeDelivery':'POST', '/driver/tasks/deliver':'POST',
         '/driver/tasks/truckRegistration':'POST', '/driver/tasks/delay':'PUT', '/driver/tasks/reportException':'POST'};
-      check(methods[route] === req.method, '模拟接口不存在或请求方法错误', 404);
+      check(methods[route] === req.method, '接口不存在或请求方法错误', 404);
       const form = JSON.parse((await body(req, 1024 * 1024)).toString());
       check(form && typeof form === 'object' && !Array.isArray(form), '请求体必须是对象');
       const next = JSON.parse(JSON.stringify(db));
@@ -183,7 +224,7 @@ function createServer(options = {}) {
         task.delayReason = form.delayReason; task.delayTime = form.delayTime;
         task.planDepartureTime = form.delayTime + ':00';
       } else {
-        check([2,4].includes(task.status), '模拟规则：在途或已交付任务可以上报异常', 409);
+        check([2,4].includes(task.status), '在途或已交付任务可以上报异常', 409);
         check(validTime(form.exceptionTime) && text(form.exceptionPlace) && TYPES.includes(form.exceptionType), '异常时间、位置或类型不正确');
         check(form.exceptionDescribe === undefined || (typeof form.exceptionDescribe === 'string' && form.exceptionDescribe.length <= 200), '描述最多200字');
         task.exceptionList.push({ exceptionTime:form.exceptionTime, exceptionPlace:form.exceptionPlace,
@@ -194,7 +235,7 @@ function createServer(options = {}) {
       return respond(route.endsWith('reportException') ? '200' : 200);
     } catch (error) {
       const status = error.status || (error instanceof SyntaxError ? 400 : 500);
-      if (!res.headersSent && !res.destroyed) respond(status, null, status === 500 ? '模拟服务内部错误' : error.message);
+      if (!res.headersSent && !res.destroyed) respond(status, null, status === 500 ? '服务内部错误' : error.message);
     }
   });
   return server;

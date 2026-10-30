@@ -39,14 +39,14 @@ struct UserTask {
         Text("- 本月任务 -").fontSize(14).fontColor($r('app.color.text_secondary')).lineHeight(20)
         Row() {
           Column() {
-            Text(this.TaskInfo.taskAmounts+ "").fontSize(18).fontColor($r('app.color.text_primary')).lineHeight(25).margin({
+            Text(String(this.TaskInfo.taskAmounts ?? '--')).fontSize(18).fontColor($r('app.color.text_primary')).lineHeight(25).margin({
               bottom: 17
             })
             Text("任务总量").fontSize(12).fontColor($r('app.color.text_primary')).lineHeight(17)
           }.justifyContent(FlexAlign.SpaceAround)
 
           Column() {
-            Text(this.TaskInfo.completedAmounts+"")
+            Text(String(this.TaskInfo.completedAmounts ?? '--'))
               .fontSize(18)
               .fontColor($r('app.color.text_primary'))
               .lineHeight(25)
@@ -55,7 +55,7 @@ struct UserTask {
           }.justifyContent(FlexAlign.SpaceAround)
 
           Column() {
-            Text(this.TaskInfo.transportMileage+"")
+            Text(String(this.TaskInfo.transportMileage ?? '--'))
               .fontSize(18)
               .fontColor($r('app.color.text_primary'))
               .lineHeight(25)

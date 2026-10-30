@@ -9,6 +9,9 @@
     "pages/Delay/Delay",
     "pages/ExceptionReport/ExceptionReport",
     "pages/SelectLocation/SelectLocation",
-    "pages/ExceptionReport/ExceptionDetail"
+    "pages/ExceptionReport/ExceptionDetail",
+    "pages/Index/Message/MessageDetail",
+    "pages/Car/Car_Message",
+    "pages/UserTask/UserTask"
   ]
 }

@@ -1,5 +1,5 @@
 import { HmLoading, CommonRouterParams, HmNavBar, HmToggleCard, HmUpload, ImageList, UploadFile, } from '@hm/basic';
-import { promptAction, PromptAction, router } from '@kit.ArkUI';
+import { componentSnapshot, promptAction, PromptAction, router } from '@kit.ArkUI';
 import { TaskDetailInfo, TaskDetailInfoModel } from '../../models/task_detail';
 import { getTaskDetail as GTD, pick_Up, deliver } from "../../api";
 import HmSkeleton from '@hm/basic/src/main/ets/components/HmSkeleton';
@@ -8,6 +8,7 @@ import common from '@ohos.app.ability.common';
 import call from '@ohos.telephony.call'
 import { MessageEvents, worker } from '@kit.ArkTS';
 import { fileIo } from '@kit.CoreFileKit';
+import image from '@ohos.multimedia.image';
 
 interface CompressResult {
   files: ImageList[]
@@ -27,6 +28,48 @@ struct TaskDetail {
   @State
   taskDetailData: TaskDetailInfoModel = new TaskDetailInfoModel({} as TaskDetailInfo)
   scroller: Scroller = new Scroller()
+
+  @State
+  snapImg:image.PixelMap|null=null
+  @State
+  showSnap: boolean = false
+  @State snapshotPending: boolean = false
+  snapshotRequest: number = 0
+
+  releaseSnapshot(): void {
+    const snapshot = this.snapImg
+    this.snapImg = null
+    if (snapshot) {
+      try { snapshot.release().catch(() => {}) } catch (_) {}
+    }
+  }
+
+  aboutToDisappear(): void {
+    this.snapshotRequest++
+    this.releaseSnapshot()
+  }
+
+  async captureSnapshot(): Promise<void> {
+    if (this.snapshotPending) { return }
+    this.snapshotPending = true
+    const request = ++this.snapshotRequest
+    try {
+      const snapshot = await componentSnapshot.get('detail')
+      if (request !== this.snapshotRequest) {
+        try { snapshot.release().catch(() => {}) } catch (_) {}
+        return
+      }
+      this.releaseSnapshot()
+      this.snapImg = snapshot
+      this.showSnap = true
+    } catch (_) {
+      if (request === this.snapshotRequest) {
+        promptAction.showToast({ message: '截图失败，请重试' })
+      }
+    } finally {
+      if (request === this.snapshotRequest) { this.snapshotPending = false }
+    }
+  }
 
   @Builder
   getBaseContentItem(item: BaseBuilderClass) {
@@ -515,6 +558,24 @@ struct TaskDetail {
     return false
   }
 
+  @Builder
+  getSnapContent () {
+    Column() {
+      Image(this.snapImg)
+        .width("100%")
+        .height("100%")
+        .objectFit(ImageFit.Auto)
+        .borderRadius(6)
+    }
+    .padding("10%")
+    .width("100%")
+    .height("100%")
+    .backgroundColor("rgba(0,0,0,0.2)")
+    .onClick(() => {
+      this.showSnap = false
+    })
+  }
+
   build() {
     Column() {
       if (this.taskDetailData.id) {
@@ -522,6 +583,17 @@ struct TaskDetail {
         HmNavBar({ title: '任务详情' })
         Scroll(this.scroller) {
           Column() {
+            Row() {
+              Image($r("app.media.share"))
+                .width(20)
+                .height(20)
+                .fillColor($r("app.color.primary"))
+                .enabled(!this.snapshotPending)
+                .onClick(() => { this.captureSnapshot() })
+            }
+            .width("100%")
+            .justifyContent(FlexAlign.End)
+            .padding(10)
             HmToggleCard({ title: '基本信息' }) {
               this.getBaseContent()
             }
@@ -574,6 +646,11 @@ struct TaskDetail {
     .backgroundColor("#F4F4F4")
     .height('100%')
     .width('100%')
+    .id("detail")
+    .bindContentCover($$this.showSnap, this.getSnapContent(), {
+      modalTransition: ModalTransition.NONE,
+      onDisappear: () => { this.releaseSnapshot() }
+    })
   }
 }
 
